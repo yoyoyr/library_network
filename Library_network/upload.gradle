@@ -1,0 +1,46 @@
+apply plugin: 'maven'
+
+
+task androidSourcesJar(type: Jar) {
+    classifier = 'sources'
+    from android.sourceSets.main.java.srcDirs
+}
+
+artifacts {
+    archives androidSourcesJar
+}
+
+def getRepositoryUsername() {
+    return hasProperty('NEXUS_USERNAME') ? NEXUS_USERNAME : ""
+}
+
+def getRepositoryPassword() {
+    return hasProperty('NEXUS_PASSWORD') ? NEXUS_PASSWORD : ""
+}
+
+def localMavenRepo = 'file://' + new File(System.getProperty('user.home'), '.m2/repository').absolutePath
+
+//是否是打本地包
+def isLocalDev = false
+
+afterEvaluate { project ->
+    uploadArchives {
+        repositories {
+            mavenDeployer {
+                pom.groupId = GROUP
+                pom.artifactId = POM_ARTIFACT_ID
+                pom.version = VERSION_NAME
+                pom.packaging = "aar"
+
+                if (isLocalDev) {
+                    repository(url: localMavenRepo)
+                } else {
+                    repository(url: RELEASE_REPOSITORY_URL) {
+                        authentication(userName: getRepositoryUsername(), password: getRepositoryPassword())
+                    }
+                }
+
+            }
+        }
+    }
+}
